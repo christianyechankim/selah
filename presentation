@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="slides-format" content="viewport">
+  <title>Church Musician Network Blueprint</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style type="text/tailwindcss">
+    @theme {
+      --color-bg: #0f1115;
+      --color-bg-deep: #090b0f;
+      --color-surface: #181c22;
+      --color-text: #f5f2eb;
+      --color-text-secondary: #d8d0c3;
+      --color-text-muted: #a8a094;
+      --color-accent-1: #c8a96b;
+      --color-accent-2: #5f8f7b;
+      --color-accent-3: #e7d7b1;
+      --color-glass-bg: rgba(255,255,255,0.06);
+      --color-glass-border: rgba(255,255,255,0.10);
+      --color-vignette: rgba(0,0,0,0.42);
+      --font-display: 'Instrument Serif', serif;
+      --font-body: 'Inter', sans-serif;
+    }
+  </style>
+  <style>
+    :root { --color-bg: #0f1115; --color-text: #f5f2eb; --glow-color-rgb: 200,169,107; }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { background: var(--color-bg); margin: 0; }
+    body { font-family: var(--font-body); color: var(--color-text); overflow: hidden; height: 100vh; width: 100vw; }
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide { position: absolute; inset: 0; background: var(--color-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transform: scale(0.95); transition: opacity 0.7s ease, transform 0.7s ease; pointer-events: none; overflow: hidden; }
+    .slide.active { opacity: 1; transform: scale(1); pointer-events: all; }
+    .slide > .content { position: relative; z-index: 2; width: 100%; max-width: 1180px; padding: clamp(1.5rem, 4vw, 4rem); }
+    .nav-controls { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; z-index: 100; background: var(--color-glass-bg); backdrop-filter: blur(14px); padding: 10px 22px; border-radius: 999px; border: 1px solid var(--color-glass-border); }
+    .nav-btn { width: 42px; height: 42px; border: none; background: var(--color-glass-bg); color: var(--color-accent-1); border-radius: 999px; font-size: 1.15rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .slide-dots { display: flex; gap: 8px; }
+    .slide-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.16); cursor: pointer; transition: transform 0.3s ease, background 0.3s ease; }
+    .slide-dots .dot.active { background: var(--color-accent-1); transform: scale(1.25); }
+    .slide-counter { color: var(--color-text-muted); font-size: 0.82rem; min-width: 44px; text-align: center; }
+    .reveal { opacity: 0; transform: translateY(20px); }
+    .gradient-mesh { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+    .blob { position: absolute; border-radius: 50%; filter: blur(80px); animation: float-slow 12s ease-in-out infinite; }
+    .blob:nth-child(2) { animation: float-drift 16s ease-in-out infinite; }
+    .blob:nth-child(3) { animation: float-slow 18s ease-in-out infinite reverse; }
+    @keyframes float-slow { 0% { transform: translate(0,0) scale(1); } 25% { transform: translate(50px,-40px) scale(1.12); } 50% { transform: translate(-35px,35px) scale(0.92); } 75% { transform: translate(36px,18px) scale(1.05); } 100% { transform: translate(0,0) scale(1); } }
+    @keyframes float-drift { 0% { transform: translate(0,0) scale(1) rotate(0deg); } 33% { transform: translate(-42px,-50px) scale(1.14) rotate(2deg); } 66% { transform: translate(34px,28px) scale(0.9) rotate(-2deg); } 100% { transform: translate(0,0) scale(1) rotate(0deg); } }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+    .slide::before {
+      content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-repeat: repeat; background-size: 256px 256px; opacity: 0.03; mix-blend-mode: overlay;
+    }
+    .slide::after { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(ellipse at center, transparent 50%, var(--color-vignette) 100%); }
+    .text-glow { text-shadow: 0 0 20px rgba(var(--glow-color-rgb), 0.35), 0 0 44px rgba(var(--glow-color-rgb), 0.18); }
+    .section-kicker { letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-text-muted); font-size: 0.76rem; }
+    .glass-card { background: var(--color-glass-bg); border: 1px solid var(--color-glass-border); backdrop-filter: blur(14px); border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.18); }
+    .accent-line { height: 1px; background: linear-gradient(90deg, transparent, rgba(200,169,107,.9), transparent); }
+    .logo-mark { width: 136px; height: 136px; margin: 0 auto 1.5rem; animation: float 3s ease-in-out infinite; }
+    .timeline-line { position: absolute; left: 11px; top: 10px; bottom: 10px; width: 2px; background: linear-gradient(180deg, rgba(200,169,107,.2), rgba(95,143,123,.9), rgba(200,169,107,.2)); }
+    .particle-canvas, .particle-canvas-ambient { position: absolute; inset: 0; z-index: 1; }
+    .bar-row { display: grid; grid-template-columns: 140px 1fr 62px; gap: 14px; align-items: center; }
+    .bar-track { height: 18px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--color-accent-1), var(--color-accent-2)); }
+    .mouse-spotlight { position: fixed; inset: 0; z-index: 99; pointer-events: none; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; } }
+  </style>
+</head>
+<body>
+<div class="mouse-spotlight"></div>
+<div class="deck">
+  <div class="slide slide-1 active" data-slide="1">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:520px;height:520px;top:-120px;right:-120px;background:var(--color-accent-1);opacity:.16"></div>
+      <div class="blob" style="width:320px;height:320px;bottom:-70px;left:-60px;background:var(--color-accent-2);opacity:.13"></div>
+      <div class="blob" style="width:220px;height:220px;top:42%;left:14%;background:var(--color-accent-3);opacity:.1"></div>
+    </div>
+    <canvas class="particle-canvas"></canvas>
+    <div class="content text-center">
+      <svg class="logo-mark reveal" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Church musician network logo">
+        <circle cx="80" cy="80" r="66" stroke="rgba(200,169,107,0.45)" stroke-width="2"/>
+        <path d="M80 28V132" stroke="#C8A96B" stroke-width="4" stroke-linecap="round"/>
+        <path d="M45 58C55 49 65 45 80 45C95 45 105 49 115 58" stroke="#E7D7B1" stroke-width="4" stroke-linecap="round"/>
+        <path d="M48 92C58 83 68 79 80 79C92 79 102 83 112 92" stroke="#5F8F7B" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="80" cy="45" r="8" fill="#C8A96B"/>
+        <circle cx="80" cy="79" r="8" fill="#5F8F7B"/>
+      </svg>
+      <p class="section-kicker reveal">Founding vision presentation</p>
+      <h1 class="font-display text-[clamp(2.9rem,6vw,5.4rem)] font-normal bg-linear-to-br from-accent-1 via-accent-3 to-accent-2 bg-clip-text text-transparent tracking-tight mb-4 reveal">Church Musician<br>Network Blueprint</h1>
+      <p class="text-[clamp(1rem,1.8vw,1.4rem)] text-text-secondary max-w-3xl mx-auto reveal">A private membership platform and Slack-based ministry community designed to strengthen worship teams through formation, training, prayer, and partnership.</p>
+    </div>
+  </div>
+
+  <div class="slide slide-2" data-slide="2">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:360px;height:360px;top:-100px;right:-60px;background:var(--color-accent-1);opacity:.08"></div>
+      <div class="blob" style="width:260px;height:260px;bottom:-50px;left:-50px;background:var(--color-accent-2);opacity:.07"></div>
+    </div>
+    <div class="content">
+      <p class="section-kicker reveal">Core idea</p>
+      <div class="grid grid-cols-2 gap-8 items-center mt-4">
+        <div class="reveal">
+          <h2 class="font-display text-[clamp(2.1rem,4vw,3.4rem)] mb-4">Build a ministry home, not a resource dump</h2>
+          <p class="text-lg text-text-secondary leading-relaxed">The website should anchor identity, doctrine, archives, and onboarding. Slack should handle the daily life of the network: prayer, questions, needs, encouragement, and peer support.</p>
+        </div>
+        <div class="glass-card p-8 reveal">
+          <div class="grid grid-cols-2 gap-5">
+            <div class="rounded-2xl bg-white/4 p-5">
+              <p class="text-sm uppercase tracking-[0.14em] text-text-muted mb-3">Website</p>
+              <p class="text-2xl font-semibold text-glow">Formation</p>
+              <p class="text-sm text-text-secondary mt-2">Vision, history, teaching library, seminar archive, onboarding, profiles.</p>
+            </div>
+            <div class="rounded-2xl bg-white/4 p-5">
+              <p class="text-sm uppercase tracking-[0.14em] text-text-muted mb-3">Slack</p>
+              <p class="text-2xl font-semibold text-glow">Community</p>
+              <p class="text-sm text-text-secondary mt-2">Instrument rooms, care, church needs, leader collaboration, quick support.</p>
+            </div>
+          </div>
+          <div class="accent-line my-6"></div>
+          <p class="text-base text-text-secondary">This two-part model keeps the mission intentional while still creating a living, relational network.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-3" data-slide="3">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:390px;height:390px;top:-110px;left:-90px;background:var(--color-accent-2);opacity:.08"></div>
+      <div class="blob" style="width:250px;height:250px;bottom:-50px;right:-20px;background:var(--color-accent-1);opacity:.07"></div>
+    </div>
+    <div class="content">
+      <p class="section-kicker reveal">Website architecture</p>
+      <h2 class="font-display text-[clamp(2.1rem,4vw,3.2rem)] mb-6 reveal">Four pillars shape the member experience</h2>
+      <div class="grid grid-cols-2 gap-6">
+        <div class="glass-card p-6 reveal"><p class="text-sm uppercase tracking-[0.14em] text-accent-1 mb-3">01</p><h3 class="text-2xl font-semibold mb-2">Vision and formation</h3><p class="text-text-secondary">Mission, history, theology of worship, culture, and community covenant.</p></div>
+        <div class="glass-card p-6 reveal"><p class="text-sm uppercase tracking-[0.14em] text-accent-2 mb-3">02</p><h3 class="text-2xl font-semibold mb-2">Training and tutorials</h3><p class="text-text-secondary">Instrument-specific videos, rehearsal practices, MD coaching, sound support, seminars.</p></div>
+        <div class="glass-card p-6 reveal"><p class="text-sm uppercase tracking-[0.14em] text-accent-3 mb-3">03</p><h3 class="text-2xl font-semibold mb-2">Community and care</h3><p class="text-text-secondary">Prayer, testimonies, directory, mentoring, and church-needs matching.</p></div>
+        <div class="glass-card p-6 reveal"><p class="text-sm uppercase tracking-[0.14em] text-accent-1 mb-3">04</p><h3 class="text-2xl font-semibold mb-2">Events and growth</h3><p class="text-text-secondary">Workshops, Q&amp;As, archives, member spotlights, and annual gatherings.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-4" data-slide="4">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:320px;height:320px;top:12%;right:-60px;background:var(--color-accent-3);opacity:.09"></div>
+      <div class="blob" style="width:260px;height:260px;bottom:-80px;left:0;background:var(--color-accent-2);opacity:.07"></div>
+    </div>
+    <div class="content">
+      <p class="section-kicker reveal">Site map</p>
+      <h2 class="font-display text-[clamp(2.1rem,4vw,3.2rem)] mb-6 reveal">The website should feel simple, trusted, and directional</h2>
+      <div class="grid grid-cols-3 gap-5">
+        <div class="glass-card p-5 reveal"><h3 class="text-xl font-semibold mb-2">Home</h3><p class="text-sm text-text-secondary">Mission, welcome video, benefits, apply and login actions.</p></div>
+        <div class="glass-card p-5 reveal"><h3 class="text-xl font-semibold mb-2">About</h3><p class="text-sm text-text-secondary">History, worship philosophy, leadership posture, ministry story.</p></div>
+        <div class="glass-card p-5 reveal"><h3 class="text-xl font-semibold mb-2">Start Here</h3><p class="text-sm text-text-secondary">Welcome path, covenant, first actions, Slack instructions.</p></div>
+        <div class="glass-card p-5 reveal"><h3 class="text-xl font-semibold mb-2">Resource Library</h3><p class="text-sm text-text-secondary">Videos and tools organized by instrument, topic, and skill level.</p></div>
+        <div class="glass-card p-5 reveal"><h3 class="text-xl font-semibold mb-2">Events</h3><p class="text-sm text-text-secondary">Live gatherings, seminar calendar, replays, workshop archive.</p></div>
+        <div class="glass-card p-5 reveal"><h3 class="text-xl font-semibold mb-2">Directory + Needs Board</h3><p class="text-sm text-text-secondary">Member discovery, church support requests, response opportunities.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-5" data-slide="5">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:460px;height:460px;top:-100px;right:-80px;background:var(--color-accent-1);opacity:.14"></div>
+      <div class="blob" style="width:280px;height:280px;bottom:-60px;left:-50px;background:var(--color-accent-2);opacity:.12"></div>
+    </div>
+    <canvas class="particle-canvas-ambient"></canvas>
+    <div class="content text-center">
+      <p class="section-kicker reveal">Community architecture</p>
+      <h2 class="font-display text-[clamp(2.4rem,4.8vw,3.8rem)] mb-4 reveal">Slack becomes the ministry hallway</h2>
+      <p class="text-xl text-text-secondary max-w-3xl mx-auto reveal">Members should be able to ask for help, receive care, and connect by instrument or role without the experience feeling noisy or random.</p>
+      <div class="grid grid-cols-3 gap-6 mt-10">
+        <div class="glass-card p-6 reveal"><p class="text-4xl mb-3">🎸</p><h3 class="text-xl font-semibold">Instrument rooms</h3><p class="text-sm text-text-secondary mt-2">Electric guitar, keys, vocals, bass, MD, sound, and future specialty rooms.</p></div>
+        <div class="glass-card p-6 reveal"><p class="text-4xl mb-3">🙏</p><h3 class="text-xl font-semibold">Care and prayer</h3><p class="text-sm text-text-secondary mt-2">Prayer, testimonies, and pastoral sensitivity built into the rhythm.</p></div>
+        <div class="glass-card p-6 reveal"><p class="text-4xl mb-3">🤝</p><h3 class="text-xl font-semibold">Church partnership</h3><p class="text-sm text-text-secondary mt-2">A dedicated needs channel connects churches with musicians ready to help.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-6" data-slide="6">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:340px;height:340px;top:-80px;right:-40px;background:var(--color-accent-2);opacity:.08"></div>
+      <div class="blob" style="width:240px;height:240px;bottom:-70px;left:-30px;background:var(--color-accent-1);opacity:.08"></div>
+    </div>
+    <div class="content">
+      <p class="section-kicker reveal">Slack channel map</p>
+      <h2 class="font-display text-[clamp(2rem,4vw,3.1rem)] mb-6 reveal">Start with a focused channel structure</h2>
+      <div class="grid grid-cols-2 gap-6">
+        <div class="glass-card p-7 reveal">
+          <p class="text-sm uppercase tracking-[0.14em] text-accent-1 mb-4">Core channels</p>
+          <ul class="space-y-3 text-lg text-text-secondary">
+            <li>#start-here</li>
+            <li>#announcements</li>
+            <li>#prayer</li>
+            <li>#church-needs</li>
+            <li>#testimonies</li>
+            <li>#events-and-seminars</li>
+            <li>#leaders</li>
+          </ul>
+        </div>
+        <div class="glass-card p-7 reveal">
+          <p class="text-sm uppercase tracking-[0.14em] text-accent-2 mb-4">Instrument rooms</p>
+          <ul class="space-y-3 text-lg text-text-secondary">
+            <li>#electric-guitar</li>
+            <li>#keys</li>
+            <li>#vocals</li>
+            <li>#bass</li>
+            <li>#md</li>
+            <li>#sound</li>
+            <li>#drums later if demand grows</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-7" data-slide="7">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:370px;height:370px;top:-100px;left:-60px;background:var(--color-accent-3);opacity:.08"></div>
+      <div class="blob" style="width:260px;height:260px;bottom:-70px;right:-60px;background:var(--color-accent-2);opacity:.08"></div>
+    </div>
+    <div class="content">
+      <p class="section-kicker reveal">Leadership model</p>
+      <h2 class="font-display text-[clamp(2rem,4vw,3.2rem)] mb-6 reveal">Each channel needs a prayerful point person</h2>
+      <div class="grid grid-cols-3 gap-6">
+        <div class="glass-card p-6 reveal"><p class="text-sm uppercase tracking-[0.14em] text-text-muted mb-2">Role</p><p class="text-2xl font-semibold mb-2">Channel lead</p><p class="text-sm text-text-secondary">A one-year servant leader responsible for warmth, order, and follow-through.</p></div>
+        <div class="glass-card p-6 reveal"><p class="text-sm uppercase tracking-[0.14em] text-text-muted mb-2">Calling</p><p class="text-2xl font-semibold mb-2">Ministry posture</p><p class="text-sm text-text-secondary">Prayerful selection, doctrinal trust, humility, and relational maturity matter as much as skill.</p></div>
+        <div class="glass-card p-6 reveal"><p class="text-sm uppercase tracking-[0.14em] text-text-muted mb-2">Support</p><p class="text-2xl font-semibold mb-2">Core team backing</p><p class="text-sm text-text-secondary">Leads should never moderate alone; escalation and care must flow to a central leadership team.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-8" data-slide="8">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:300px;height:300px;top:6%;right:-60px;background:var(--color-accent-1);opacity:.07"></div>
+      <div class="blob" style="width:260px;height:260px;bottom:-70px;left:-40px;background:var(--color-accent-2);opacity:.07"></div>
+    </div>
+    <div class="content">
+      <p class="section-kicker reveal">Lead responsibilities</p>
+      <h2 class="font-display text-[clamp(2rem,4vw,3.1rem)] mb-6 reveal">Keep expectations clear and lightweight</h2>
+      <div class="grid grid-cols-2 gap-6">
+        <div class="glass-card p-7 reveal">
+          <ul class="space-y-4 text-lg text-text-secondary">
+            <li>Welcome new members into the channel.</li>
+            <li>Answer questions or route them to the right person.</li>
+            <li>Post one prompt, tip, or resource each week.</li>
+          </ul>
+        </div>
+        <div class="glass-card p-7 reveal">
+          <ul class="space-y-4 text-lg text-text-secondary">
+            <li>Model prayer, humility, and encouragement.</li>
+            <li>Surface church needs, care issues, or conflict to core leadership.</li>
+            <li>Join monthly leader check-ins and annual review.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-9" data-slide="9">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:320px;height:320px;top:-80px;right:-20px;background:var(--color-accent-2);opacity:.08"></div>
+      <div class="blob" style="width:280px;height:280px;bottom:-60px;left:-60px;background:var(--color-accent-1);opacity:.08"></div>
+    </div>
+    <div class="content">
+      <p class="section-kicker reveal">Onboarding journey</p>
+      <h2 class="font-display text-[clamp(2rem,4vw,3.1rem)] mb-5 reveal">The first week should feel guided and personal</h2>
+      <div class="relative pl-10 mt-8">
+        <div class="timeline-line"></div>
+        <div class="space-y-5">
+          <div class="glass-card p-5 relative reveal"><div class="absolute -left-[34px] top-6 w-6 h-6 rounded-full bg-accent-1 shadow-[0_0_20px_rgba(200,169,107,.6)]"></div><strong>Approve application</strong><p class="text-text-secondary mt-1">Send welcome email with login and Start Here instructions.</p></div>
+          <div class="glass-card p-5 relative reveal"><div class="absolute -left-[34px] top-6 w-6 h-6 rounded-full bg-accent-2 shadow-[0_0_20px_rgba(95,143,123,.6)]"></div><strong>Complete profile</strong><p class="text-text-secondary mt-1">Church, city, instrument, experience, availability, and prayer needs.</p></div>
+          <div class="glass-card p-5 relative reveal"><div class="absolute -left-[34px] top-6 w-6 h-6 rounded-full bg-accent-1 shadow-[0_0_20px_rgba(200,169,107,.6)]"></div><strong>Join Slack and introduce yourself</strong><p class="text-text-secondary mt-1">Post in #start-here and select the right instrument room.</p></div>
+          <div class="glass-card p-5 relative reveal"><div class="absolute -left-[34px] top-6 w-6 h-6 rounded-full bg-accent-2 shadow-[0_0_20px_rgba(95,143,123,.6)]"></div><strong>Receive a welcome from the channel lead</strong><p class="text-text-secondary mt-1">Immediate personal connection moves members from browsing to belonging.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-10" data-slide="10">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:420px;height:420px;top:-120px;right:-90px;background:var(--color-accent-1);opacity:.15"></div>
+      <div class="blob" style="width:260px;height:260px;bottom:-70px;left:-50px;background:var(--color-accent-2);opacity:.12"></div>
+    </div>
+    <canvas class="particle-canvas"></canvas>
+    <div class="content text-center">
+      <p class="section-kicker reveal">Launch sequence</p>
+      <h2 class="font-display text-[clamp(2.4rem,4.8vw,3.8rem)] mb-4 reveal">Run the first 90 days in three phases</h2>
+      <div class="grid grid-cols-3 gap-6 mt-10">
+        <div class="glass-card p-6 reveal"><p class="text-sm uppercase tracking-[0.14em] text-accent-1 mb-3">Days 1–30</p><h3 class="text-2xl font-semibold mb-2">Foundation</h3><p class="text-sm text-text-secondary">Finalize mission, covenant, pages, channel setup, welcome video, and first-month content.</p></div>
+        <div class="glass-card p-6 reveal"><p class="text-sm uppercase tracking-[0.14em] text-accent-2 mb-3">Days 31–60</p><h3 class="text-2xl font-semibold mb-2">Pilot</h3><p class="text-sm text-text-secondary">Invite a trusted founding cohort, test onboarding, host orientation, and refine weak spots.</p></div>
+        <div class="glass-card p-6 reveal"><p class="text-sm uppercase tracking-[0.14em] text-accent-3 mb-3">Days 61–90</p><h3 class="text-2xl font-semibold mb-2">Public launch</h3><p class="text-sm text-text-secondary">Open applications, begin rhythms, activate church-needs support, and review engagement data.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-11" data-slide="11">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:330px;height:330px;top:-70px;left:-60px;background:var(--color-accent-2);opacity:.08"></div>
+      <div class="blob" style="width:280px;height:280px;bottom:-90px;right:-60px;background:var(--color-accent-1);opacity:.08"></div>
+    </div>
+    <div class="content">
+      <p class="section-kicker reveal">Operating rhythm</p>
+      <h2 class="font-display text-[clamp(2rem,4vw,3.1rem)] mb-6 reveal">Consistency will matter more than volume</h2>
+      <div class="grid grid-cols-4 gap-5">
+        <div class="glass-card p-5 reveal"><p class="text-sm uppercase tracking-[0.14em] text-text-muted mb-3">Weekly</p><p class="text-xl font-semibold">Prayer thread</p><p class="text-sm text-text-secondary mt-2">Shared care and follow-up.</p></div>
+        <div class="glass-card p-5 reveal"><p class="text-sm uppercase tracking-[0.14em] text-text-muted mb-3">Weekly</p><p class="text-xl font-semibold">Instrument prompt</p><p class="text-sm text-text-secondary mt-2">One useful discussion in each room.</p></div>
+        <div class="glass-card p-5 reveal"><p class="text-sm uppercase tracking-[0.14em] text-text-muted mb-3">Monthly</p><p class="text-xl font-semibold">Workshop or seminar</p><p class="text-sm text-text-secondary mt-2">Live training or replay upload.</p></div>
+        <div class="glass-card p-5 reveal"><p class="text-sm uppercase tracking-[0.14em] text-text-muted mb-3">Quarterly</p><p class="text-xl font-semibold">Review and adjust</p><p class="text-sm text-text-secondary mt-2">Survey, channel health, lead support.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-12" data-slide="12">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:340px;height:340px;top:-80px;right:-50px;background:var(--color-accent-3);opacity:.08"></div>
+      <div class="blob" style="width:250px;height:250px;bottom:-70px;left:-40px;background:var(--color-accent-2);opacity:.07"></div>
+    </div>
+    <div class="content">
+      <p class="section-kicker reveal">What to measure</p>
+      <h2 class="font-display text-[clamp(2rem,4vw,3.1rem)] mb-6 reveal">Track activation, not just signups</h2>
+      <div class="glass-card p-8 reveal">
+        <div class="space-y-5">
+          <div class="bar-row"><span class="text-text-secondary">Profile completion</span><div class="bar-track"><div class="bar-fill" data-width="88"></div></div><span class="text-text-muted">88%</span></div>
+          <div class="bar-row"><span class="text-text-secondary">Slack join rate</span><div class="bar-track"><div class="bar-fill" data-width="82"></div></div><span class="text-text-muted">82%</span></div>
+          <div class="bar-row"><span class="text-text-secondary">Intro post rate</span><div class="bar-track"><div class="bar-fill" data-width="70"></div></div><span class="text-text-muted">70%</span></div>
+          <div class="bar-row"><span class="text-text-secondary">30-day activity</span><div class="bar-track"><div class="bar-fill" data-width="65"></div></div><span class="text-text-muted">65%</span></div>
+        </div>
+        <p class="text-sm text-text-secondary mt-6">Use targets like these as early benchmarks, then refine them as the founding cohort reveals real behavior.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-13" data-slide="13">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:520px;height:520px;top:-110px;right:-110px;background:var(--color-accent-1);opacity:.16"></div>
+      <div class="blob" style="width:300px;height:300px;bottom:-60px;left:-60px;background:var(--color-accent-2);opacity:.12"></div>
+      <div class="blob" style="width:220px;height:220px;top:48%;left:18%;background:var(--color-accent-3);opacity:.1"></div>
+    </div>
+    <canvas class="particle-canvas"></canvas>
+    <div class="content text-center">
+      <p class="section-kicker reveal">Closing focus</p>
+      <h2 class="font-display text-[clamp(2.8rem,5vw,4.4rem)] mb-4 reveal">Start with a founding cohort</h2>
+      <p class="text-[clamp(1rem,1.8vw,1.35rem)] text-text-secondary max-w-3xl mx-auto reveal">Build the website, recruit channel leads, launch a guided pilot, and let culture form before scale. The strength of the network will come from trust, prayer, and steady rhythms.</p>
+      <div class="grid grid-cols-3 gap-6 mt-10">
+        <div class="glass-card p-5 reveal"><p class="text-3xl mb-2">1</p><p class="text-text-secondary">Clarify mission and covenant</p></div>
+        <div class="glass-card p-5 reveal"><p class="text-3xl mb-2">2</p><p class="text-text-secondary">Train and appoint channel leads</p></div>
+        <div class="glass-card p-5 reveal"><p class="text-3xl mb-2">3</p><p class="text-text-secondary">Pilot, refine, and then grow</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="nav-controls">
+  <button class="nav-btn" aria-label="Previous slide" onclick="changeSlide(-1)">&#8249;</button>
+  <div class="slide-dots" id="dots"></div>
+  <button class="nav-btn" aria-label="Next slide" onclick="changeSlide(1)">&#8250;</button>
+  <span class="slide-counter" id="counter">1 / 13</span>
+</div>
+<script>
+let current = 1;
+const total = document.querySelectorAll('.slide').length;
+const dotsContainer = document.getElementById('dots');
+const counter = document.getElementById('counter');
+for (let i = 1; i <= total; i++) { const dot = document.createElement('div'); dot.className = 'dot' + (i === 1 ? ' active' : ''); dot.onclick = () => goToSlide(i); dotsContainer.appendChild(dot); }
+function goToSlide(n) { const prev = document.querySelector('.slide.active'); const next = document.querySelector(`.slide[data-slide="${n}"]`); if (prev) prev.classList.remove('active'); if (next) { next.classList.add('active'); animateSlide(next); } current = n; updateNav(); }
+function changeSlide(dir) { let next = current + dir; if (next < 1) next = total; if (next > total) next = 1; goToSlide(next); }
+function updateNav() { document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i + 1 === current)); counter.textContent = current + ' / ' + total; }
+document.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); changeSlide(1); } if (e.key === 'ArrowLeft') { e.preventDefault(); changeSlide(-1); } });
+let touchStartX = 0;
+document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+document.addEventListener('touchend', (e) => { const diff = touchStartX - e.changedTouches[0].clientX; if (Math.abs(diff) > 50) changeSlide(diff > 0 ? 1 : -1); });
+function animateSlide(slide) {
+  slide.querySelectorAll('.reveal').forEach((el, i) => {
+    el.style.transition = 'none'; el.style.opacity = '0'; el.style.transform = 'translateY(20px)'; el.offsetHeight;
+    const delay = i * 0.08;
+    el.style.transition = `opacity 0.35s ease ${delay}s, transform 0.35s ease ${delay}s`;
+    el.style.opacity = '1'; el.style.transform = 'translateY(0px)';
+  });
+  animateSlideEffects(slide);
+}
+function animateSlideEffects(slide) {
+  slide.querySelectorAll('.bar-fill:not(.fill-init)').forEach((bar, i) => {
+    bar.classList.add('fill-init');
+    bar.style.width = '0%';
+    bar.style.transition = `width 0.6s ease ${i * 0.08}s`;
+    bar.offsetHeight;
+    bar.style.width = bar.dataset.width + '%';
+  });
+}
+document.addEventListener('mousemove', (e) => {
+  const spotlight = document.querySelector('.mouse-spotlight');
+  if (spotlight) spotlight.style.background = `radial-gradient(600px circle at ${e.clientX}px ${e.clientY}px, rgba(200,169,107,0.06), transparent 40%)`;
+});
+window.initParticles = function(canvas, options) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+  const interactive = options.interactive !== false;
+  const count = options.count || (interactive ? 55 : 18);
+  let mx = -1000, my = -1000;
+  const particles = Array.from({ length: count }, () => ({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3, size: Math.random() * 2.5 + 0.8, alpha: Math.random() * 0.35 + 0.1 }));
+  if (interactive) {
+    canvas.addEventListener('mousemove', (e) => { const rect = canvas.getBoundingClientRect(); mx = e.clientX - rect.left; my = e.clientY - rect.top; });
+    canvas.addEventListener('mouseleave', () => { mx = -1000; my = -1000; });
+  }
+  (function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      if (interactive) { const dx = p.x - mx, dy = p.y - my, dist = Math.sqrt(dx * dx + dy * dy) || 1; if (dist < 120) { const force = (120 - dist) / 120 * 2; p.vx += (dx / dist) * force * 0.1; p.vy += (dy / dist) * force * 0.1; } }
+      p.vx *= 0.98; p.vy *= 0.98; p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0; if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fillStyle = `rgba(200,169,107,${p.alpha})`; ctx.fill();
+    });
+    requestAnimationFrame(animate);
+  })();
+};
+document.querySelectorAll('.particle-canvas').forEach(c => window.initParticles(c, { interactive: true, count: 55 }));
+document.querySelectorAll('.particle-canvas-ambient').forEach(c => window.initParticles(c, { interactive: false, count: 18 }));
+try { animateSlide(document.querySelector('.slide.active')); } catch(e) { console.warn(e); }
+</script>
+</body>
+</html>
